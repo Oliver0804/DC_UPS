@@ -1,11 +1,24 @@
 #define ADC_BT PA0
 #define ADC_AC PA1
-#define ADC_ZONE_1 200
-#define ADC_ZONE_2 400
-#define ADC_ZONE_3 600
-#define ADC_ZONE_4 800
-#define ADC_ZONE_5 1000
+/*
+ * 电阻为512k对62K
+23.5  510 62  2.547202797   790.4047468
+24    510 62  2.601398601   807.221869
+24.5  510 62  2.655594406   824.0389913
+25    510 62  2.70979021    840.8561136
+26    510 62  2.818181818   874.4903581
+輸入電壓
+*/
+#define ADC_ZONE_1 790 //23.5
+#define ADC_ZONE_2 870 //24
+#define ADC_ZONE_3 824 //24.5
+#define ADC_ZONE_4 840 //25
+#define ADC_ZONE_5 874 //26
+
 #define ADC_AVG 5
+
+//侦测有无AC之阀值
+#define AC_ADC_VAL 500
 
 #define GPIO_ON 0
 #define GPIO_OFF 1
@@ -23,31 +36,9 @@
 
 int adcValue1 = 0;
 int adcValue2 = 0;
-
-
-#include <FlashStorage_STM32.h>
-
-void flashOpenCount() {
-  uint16_t address = 0;
-  int number;
-
-  Serial.print(F("\nStart FlashStoreAndRetrieve on ")); Serial.println(BOARD_NAME);
-  Serial.println(FLASH_STORAGE_STM32_VERSION);
-
-  Serial.print("EEPROM length: ");
-  Serial.println(EEPROM.length());
-
-  // Read the content of emulated-EEPROM
-  EEPROM.get(address, number);
-
-  // Print the current number on the serial monitor
-  Serial.print("Number = 0x"); Serial.println(number, HEX);
-
-  // Save into emulated-EEPROM the number increased by 1 for the next run of the sketch
-  EEPROM.put(address, (int) (number + 1));
-  EEPROM.commit();
-
-}
+//计数周期使用
+int noAcPowerCountTime=0;
+//GPIO初始化
 void gpioInit() {
 
   pinMode(BT_CHARGE, OUTPUT);
@@ -82,10 +73,28 @@ void relayOn() {
 void relayOff() {
   digitalWrite(GPIO_RELAY, LOW);
 }
+/*
+执行Buzz次数
+使用方式输入 int times做为次数
+*/
+void runBuzz(int times){
+  for(int x=0;x<=times;x++){
+    digitalWrite(GPIO_BUZZ,HIGH);
+    delay(100);
+    digitalWrite(GPIO_BUZZ,LOW);
+    delay(100);
+    }
+  }
 
-
+/*
+读取电池电压
+return相对应数值
+提供给显示副程式使用
+*/
 int adcCheckBTValue() {
   adcValue1 = 0;
+  chargeOff();
+  delay(50);//等待电容放电
   for (int x = 0; x <= ADC_AVG; x++) {
     adcValue1 = adcValue1 + analogRead(ADC_BT);
     delay(5);
@@ -94,24 +103,18 @@ int adcCheckBTValue() {
   Serial.print("BT = \t");
   Serial.println(adcValue1);
   if (adcValue1 > ADC_ZONE_5) {
-    chargeOff();
     return 5;
   }
   if (adcValue1 > ADC_ZONE_4) {
-    chargeOff();
     return 4;
   }
   if (adcValue1 > ADC_ZONE_3) {
-    chargeOn();
     return 3;
   }
   if (adcValue1 > ADC_ZONE_2) {
-    chargeOn();
     return 2;
   }
   if (adcValue1 > ADC_ZONE_1) {
-    chargeOn();
-    relayOff();
     return 1;
   }
   chargeOn();
@@ -130,16 +133,28 @@ int adcCheckACValue() {
   adcValue2 = adcValue2 / ADC_AVG;
   Serial.print("AC = \t");
   Serial.println(adcValue2);
-  if (adcValue2 > 512) {
+  if (adcValue2 > AC_ADC_VAL) {
     relayOff();
     return 1;
   } else {
+    //停电状态
     relayOn();
+    //计数次数
+    if(noAcPowerCountTime>5000){
+      noAcPowerCountTime=0;
+      runBuzz(1);
+      }else{
+      noAcPowerCountTime++;
+        }
     return 1;
   }
   return 0;
 }
-
+/*
+todo 评估是否加入呼吸效果
+输入 int level 对应状态
+目前不会闪烁或是呼吸效果
+*/
 void ledBTlevel(int level) {
   Serial.println(level);
   switch (level) {
@@ -191,11 +206,29 @@ void ledBTlevel(int level) {
 void setup() {
   Serial.begin(9600);
   gpioInit();
-  flashOpenCount();
+  ledBTlevel(1);
+  delay(100);
+    ledBTlevel(2);
+  delay(100);
+    ledBTlevel(3);
+  delay(100);
+    ledBTlevel(4);
+  delay(100);
+    ledBTlevel(5);
+  delay(100);
+
+  digitalWrite(GPIO_BUZZ, HIGH);
+ delay(100);
+  digitalWrite(GPIO_BUZZ, LOW);
+  delay(100);
+    digitalWrite(GPIO_BUZZ, HIGH);
+ delay(100);
+  digitalWrite(GPIO_BUZZ, LOW);
+  delay(100);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  ledBTlevel(adcCheckBTValue());
-  adcCheckACValue();
+  ledBTlevel(adcCheckBTValue());//检查电池并直接输出LED
+  adcCheckACValue();//读取AC是否有电力输入,如果有则不开启继电器
 }
