@@ -207,15 +207,15 @@ void setup() {
   Serial.begin(9600);
   gpioInit();
   ledBTlevel(1);
-  delay(100);
+  delay(1000);
     ledBTlevel(2);
-  delay(100);
+  delay(1000);
     ledBTlevel(3);
-  delay(100);
+  delay(1000);
     ledBTlevel(4);
-  delay(100);
+  delay(1000);
     ledBTlevel(5);
-  delay(100);
+  delay(1000);
 
   digitalWrite(GPIO_BUZZ, HIGH);
  delay(100);
