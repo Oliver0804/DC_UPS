@@ -1,3 +1,8 @@
+
+#define GPIO_ON 0
+#define GPIO_OFF 1
+
+
 #define ADC_BT PA0
 #define ADC_AC PA1
 /*
@@ -21,6 +26,9 @@
 #define AC_ADC_VAL 600
 #define checkTheBatteryCycle 10
 int checkTheBatteryCycleCount = 0;
+
+
+
 int noHavePower = 0;
 int ledChargelevelCount = 0;
 #define BT_CHARGE PA10
@@ -32,6 +40,8 @@ int ledChargelevelCount = 0;
 #define LED5 PA5
 #define ledCycle 1
 int ledCycleCount = 0;
+
+
 
 
 #define GPIO_BUZZ PA13
@@ -243,7 +253,7 @@ void ledBTlevel(int level) {
     }
   } else {
     //有電的狀況下跑燈狀態
-    ledChargelevelCount++
+    ledChargelevelCount++;
     if (ledChargelevelCount <= level) {
       switch (ledChargelevelCount) {
         case 5:
