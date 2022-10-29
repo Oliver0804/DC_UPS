@@ -10,7 +10,7 @@
   輸入電壓
 */
 #define ADC_ZONE_1 790 //23.5
-#define ADC_ZONE_2 870 //24
+#define ADC_ZONE_2 807 //24
 #define ADC_ZONE_3 824 //24.5
 #define ADC_ZONE_4 840 //25
 #define ADC_ZONE_5 874 //26
@@ -21,10 +21,8 @@
 #define AC_ADC_VAL 600
 #define checkTheBatteryCycle 10
 int checkTheBatteryCycleCount = 0;
-
-#define GPIO_ON 0
-#define GPIO_OFF 1
-
+int noHavePower = 0;
+int ledChargelevelCount = 0;
 #define BT_CHARGE PA10
 
 #define LED1 PA4
@@ -84,7 +82,7 @@ void relayOff() {
   使用方式输入 int times做为次数
 */
 void runBuzz(int times) {
-  for (int x = 0; x <= times; x++) {
+  for (int x = 0; x < times; x++) {
     digitalWrite(GPIO_BUZZ, HIGH);
     delay(100);
     digitalWrite(GPIO_BUZZ, LOW);
@@ -147,7 +145,7 @@ int adcCheckACValue() {
   if (adcValue2 > AC_ADC_VAL) {
     noAcPowerCountTime = 0;
     relayOff();
-    return 1;
+    return 0;
   } else {
     //停电状态
     relayOn();
@@ -171,75 +169,130 @@ int adcCheckACValue() {
 */
 void ledBTlevel(int level) {
   Serial.println(level);
-  switch (level) {
-    case 5:
-      digitalWrite(LED1, GPIO_ON);
-      digitalWrite(LED2, GPIO_ON);
-      digitalWrite(LED3, GPIO_ON);
-      digitalWrite(LED4, GPIO_ON);
-      if (ledCycleCount > ledCycle) {
-        ledCycleCount = 0;
-        digitalWrite(LED5, !digitalRead(LED5));
-      } else {
-        ledCycleCount++;
-      }
+  if (noHavePower == 1) {
+    //沒有電的狀況下燈號閃爍
+    switch (level) {
+      case 5:
+        digitalWrite(LED1, GPIO_ON);
+        digitalWrite(LED2, GPIO_ON);
+        digitalWrite(LED3, GPIO_ON);
+        digitalWrite(LED4, GPIO_ON);
+        if (ledCycleCount > ledCycle) {
+          ledCycleCount = 0;
+          digitalWrite(LED5, !digitalRead(LED5));
+        } else {
+          ledCycleCount++;
+        }
 
-      break;
-    case 4:
-      digitalWrite(LED1, GPIO_ON);
-      digitalWrite(LED2, GPIO_ON);
-      digitalWrite(LED3, GPIO_ON);
-      if (ledCycleCount > ledCycle) {
-        ledCycleCount = 0;
-        digitalWrite(LED4, !digitalRead(LED4));
-      } else {
-        ledCycleCount++;
+        break;
+      case 4:
+        digitalWrite(LED1, GPIO_ON);
+        digitalWrite(LED2, GPIO_ON);
+        digitalWrite(LED3, GPIO_ON);
+        if (ledCycleCount > ledCycle) {
+          ledCycleCount = 0;
+          digitalWrite(LED4, !digitalRead(LED4));
+        } else {
+          ledCycleCount++;
+        }
+        digitalWrite(LED5, GPIO_OFF);
+        break;
+      case 3:
+        digitalWrite(LED1, GPIO_ON);
+        digitalWrite(LED2, GPIO_ON);
+        if (ledCycleCount > ledCycle) {
+          ledCycleCount = 0;
+          digitalWrite(LED3, !digitalRead(LED3));
+        } else {
+          ledCycleCount++;
+        }
+        digitalWrite(LED4, GPIO_OFF);
+        digitalWrite(LED5, GPIO_OFF);
+        break;
+      case 2:
+        digitalWrite(LED1, GPIO_ON);
+        if (ledCycleCount > ledCycle) {
+          ledCycleCount = 0;
+          digitalWrite(LED2, !digitalRead(LED2));
+        } else {
+          ledCycleCount++;
+        }
+        digitalWrite(LED3, GPIO_OFF);
+        digitalWrite(LED4, GPIO_OFF);
+        digitalWrite(LED5, GPIO_OFF);
+        break;
+      case 1:
+        if (ledCycleCount > ledCycle) {
+          ledCycleCount = 0;
+          digitalWrite(LED1, !digitalRead(LED1));
+        } else {
+          ledCycleCount++;
+        }
+        digitalWrite(LED2, GPIO_OFF);
+        digitalWrite(LED3, GPIO_OFF);
+        digitalWrite(LED4, GPIO_OFF);
+        digitalWrite(LED5, GPIO_OFF);
+        break;
+      case 0:
+        digitalWrite(LED1, GPIO_OFF);
+        digitalWrite(LED2, GPIO_OFF);
+        digitalWrite(LED3, GPIO_OFF);
+        digitalWrite(LED4, GPIO_OFF);
+        digitalWrite(LED5, GPIO_OFF);
+        break;
+    }
+  } else {
+    //有電的狀況下跑燈狀態
+    ledChargelevelCount++
+    if (ledChargelevelCount <= level) {
+      switch (ledChargelevelCount) {
+        case 5:
+          digitalWrite(LED1, GPIO_ON);
+          digitalWrite(LED2, GPIO_ON);
+          digitalWrite(LED3, GPIO_ON);
+          digitalWrite(LED4, GPIO_ON);
+          digitalWrite(LED5, GPIO_ON);
+          break;
+        case 4:
+          digitalWrite(LED1, GPIO_ON);
+          digitalWrite(LED2, GPIO_ON);
+          digitalWrite(LED3, GPIO_ON);
+          digitalWrite(LED4, GPIO_ON);
+          digitalWrite(LED5, GPIO_OFF);
+          break;
+        case 3:
+          digitalWrite(LED1, GPIO_ON);
+          digitalWrite(LED2, GPIO_ON);
+          digitalWrite(LED3, GPIO_ON);
+          digitalWrite(LED4, GPIO_OFF);
+          digitalWrite(LED5, GPIO_OFF);
+          break;
+        case 2:
+          digitalWrite(LED1, GPIO_ON);
+          digitalWrite(LED2, GPIO_ON);
+          digitalWrite(LED3, GPIO_OFF);
+          digitalWrite(LED4, GPIO_OFF);
+          digitalWrite(LED5, GPIO_OFF);
+          break;
+        case 1:
+          digitalWrite(LED1, GPIO_ON);
+          digitalWrite(LED2, GPIO_OFF);
+          digitalWrite(LED3, GPIO_OFF);
+          digitalWrite(LED4, GPIO_OFF);
+          digitalWrite(LED5, GPIO_OFF);
+          break;
+        case 0:
+          digitalWrite(LED1, GPIO_OFF);
+          digitalWrite(LED2, GPIO_OFF);
+          digitalWrite(LED3, GPIO_OFF);
+          digitalWrite(LED4, GPIO_OFF);
+          digitalWrite(LED5, GPIO_OFF);
+          break;
       }
-      digitalWrite(LED5, GPIO_OFF);
-      break;
-    case 3:
-      digitalWrite(LED1, GPIO_ON);
-      digitalWrite(LED2, GPIO_ON);
-      if (ledCycleCount > ledCycle) {
-        ledCycleCount = 0;
-        digitalWrite(LED3, !digitalRead(LED3));
-      } else {
-        ledCycleCount++;
-      }
-      digitalWrite(LED4, GPIO_OFF);
-      digitalWrite(LED5, GPIO_OFF);
-      break;
-    case 2:
-      digitalWrite(LED1, GPIO_ON);
-      if (ledCycleCount > ledCycle) {
-        ledCycleCount = 0;
-        digitalWrite(LED2,!digitalRead(LED2));
-      } else {
-        ledCycleCount++;
-      }
-      digitalWrite(LED3, GPIO_OFF);
-      digitalWrite(LED4, GPIO_OFF);
-      digitalWrite(LED5, GPIO_OFF);
-      break;
-    case 1:
-      if (ledCycleCount > ledCycle) {
-        ledCycleCount = 0;
-        digitalWrite(LED1, !digitalRead(LED1));
-      } else {
-        ledCycleCount++;
-      }
-      digitalWrite(LED2, GPIO_OFF);
-      digitalWrite(LED3, GPIO_OFF);
-      digitalWrite(LED4, GPIO_OFF);
-      digitalWrite(LED5, GPIO_OFF);
-      break;
-    case 0:
-      digitalWrite(LED1, GPIO_OFF);
-      digitalWrite(LED2, GPIO_OFF);
-      digitalWrite(LED3, GPIO_OFF);
-      digitalWrite(LED4, GPIO_OFF);
-      digitalWrite(LED5, GPIO_OFF);
-      break;
+    } else {
+      ledChargelevelCount = 0;
+    }
+
   }
 }
 
@@ -269,7 +322,6 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
   if (checkTheBatteryCycleCount < checkTheBatteryCycle) {
     checkTheBatteryCycleCount++;
   } else {
@@ -277,5 +329,5 @@ void loop() {
     ledBTlevel(adcCheckBTValue());//检查电池并直接输出LED
   }
 
-  adcCheckACValue();//读取AC是否有电力输入,如果有则不开启继电器
+  noHavePower = adcCheckACValue(); //读取AC是否有电力输入,如果有则不开启继电器
 }
