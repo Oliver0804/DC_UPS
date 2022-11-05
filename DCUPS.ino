@@ -23,7 +23,7 @@
 #define ADC_AVG 5
 
 //侦测有无AC之阀值
-#define AC_ADC_VAL 600
+#define AC_ADC_VAL 20
 #define checkTheBatteryCycle 10
 int checkTheBatteryCycleCount = 0;
 
@@ -114,6 +114,9 @@ int adcCheckBTValue() {
     delay(5);
   }
   adcValue1 = adcValue1 / ADC_AVG;
+  //Serial.print(" BT = \t");
+  //Serial.println(adcValue1);
+  chargeOn();
   //Serial.print("BT = \t");
   //Serial.print(adcValue1);
   if (adcValue1 > ADC_ZONE_5) {
@@ -134,9 +137,9 @@ int adcCheckBTValue() {
   }
   if (adcValue1 > ADC_ZONE_1) {
     lowPowerBuzzCount = 30;
+
     return 1;
   }
-  chargeOn();
   //Serial.print("very low\r\n");
   return 0;
 
@@ -150,8 +153,8 @@ int adcCheckACValue() {
     delay(5);
   }
   adcValue2 = adcValue2 / ADC_AVG;
-  Serial.print(" AC = \t");
-  Serial.println(adcValue2);
+  //Serial.print(" AC = \t");
+  //Serial.println(adcValue2);
   if (adcValue2 > AC_ADC_VAL) {
     noAcPowerCountTime = 0;
     relayOff();
@@ -328,7 +331,14 @@ void setup() {
   delay(100);
   digitalWrite(GPIO_BUZZ, LOW);
   delay(100);
-
+  while (0) {
+    digitalWrite(GPIO_BUZZ, HIGH);
+    delay(100);
+    digitalWrite(GPIO_BUZZ, LOW);
+    delay(100);
+    digitalWrite(BT_CHARGE, !digitalRead(BT_CHARGE));
+    delay(1000);
+  }
 }
 
 void loop() {
