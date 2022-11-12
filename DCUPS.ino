@@ -14,17 +14,19 @@
   26    510 62  2.818181818   874.4903581
   輸入電壓
 */
-#define ADC_ZONE_1 790 //23.5
-#define ADC_ZONE_2 807 //24
-#define ADC_ZONE_3 824 //24.5
-#define ADC_ZONE_4 840 //25
-#define ADC_ZONE_5 874 //26
+#define ADC_OFFSET 100   //非工程人員改為0即可 測試值100
+
+#define ADC_ZONE_1 790-ADC_OFFSET //23.5
+#define ADC_ZONE_2 807-ADC_OFFSET //24
+#define ADC_ZONE_3 824-ADC_OFFSET //24.5
+#define ADC_ZONE_4 840-ADC_OFFSET //25
+#define ADC_ZONE_5 874-ADC_OFFSET //26
 
 #define ADC_AVG 5
 
 //侦测有无AC之阀值
-#define AC_ADC_VAL 20
-#define checkTheBatteryCycle 10
+#define AC_ADC_VAL 20 //AC檢知位準
+#define checkTheBatteryCycle 10  // 充電檢查週期
 int checkTheBatteryCycleCount = 0;
 
 
@@ -45,10 +47,19 @@ int ledCycleCount = 0;
 
 
 #define GPIO_BUZZ PA13
+#define BUZZ_ZONE_1 30
+#define BUZZ_ZONE_2 50
+#define BUZZ_ZONE_3 70
+#define BUZZ_ZONE_4 100
+#define BUZZ_ZONE_5 200
+
+
+
 #define GPIO_RELAY PA14
 
 int adcValue1 = 0;
 int adcValue2 = 0;
+int level = 0;
 int lowPowerBuzzCount = 50;
 //计数周期使用
 int noAcPowerCountTime = 0;
@@ -114,33 +125,31 @@ int adcCheckBTValue() {
     delay(5);
   }
   adcValue1 = adcValue1 / ADC_AVG;
-  //Serial.print(" BT = \t");
-  //Serial.println(adcValue1);
   chargeOn();
-  //Serial.print("BT = \t");
-  //Serial.print(adcValue1);
+  Serial.print("BT:");
+  Serial.println(adcValue1);
   if (adcValue1 > ADC_ZONE_5) {
-    lowPowerBuzzCount = 200;
+    lowPowerBuzzCount = BUZZ_ZONE_5;
     return 5;
   }
   if (adcValue1 > ADC_ZONE_4) {
-    lowPowerBuzzCount = 100;
+    lowPowerBuzzCount = BUZZ_ZONE_4;
     return 4;
   }
   if (adcValue1 > ADC_ZONE_3) {
-    lowPowerBuzzCount = 70;
+    lowPowerBuzzCount = BUZZ_ZONE_3;
     return 3;
   }
   if (adcValue1 > ADC_ZONE_2) {
-    lowPowerBuzzCount = 50;
+    lowPowerBuzzCount = BUZZ_ZONE_2;
     return 2;
   }
   if (adcValue1 > ADC_ZONE_1) {
-    lowPowerBuzzCount = 30;
+    lowPowerBuzzCount = BUZZ_ZONE_1;
 
     return 1;
   }
-  //Serial.print("very low\r\n");
+  Serial.print("very low\r\n");
   return 0;
 
 }
@@ -153,24 +162,15 @@ int adcCheckACValue() {
     delay(5);
   }
   adcValue2 = adcValue2 / ADC_AVG;
-  //Serial.print(" AC = \t");
-  //Serial.println(adcValue2);
+  Serial.print("AC:");
+  Serial.println(adcValue2);
   if (adcValue2 > AC_ADC_VAL) {
-    noAcPowerCountTime = 0;
     relayOff();
     return 0;
   } else {
     //停电状态
     relayOn();
     //计数次数
-    if (noAcPowerCountTime > lowPowerBuzzCount) {
-      noAcPowerCountTime = 0;
-      Serial.print(noAcPowerCountTime);
-      runBuzz(1);
-    } else {
-      noAcPowerCountTime++;
-      Serial.print(noAcPowerCountTime);
-    }
     return 1;
   }
   return 0;
@@ -190,57 +190,31 @@ void ledBTlevel(int level) {
         digitalWrite(LED2, GPIO_ON);
         digitalWrite(LED3, GPIO_ON);
         digitalWrite(LED4, GPIO_ON);
-        if (ledCycleCount > ledCycle) {
-          ledCycleCount = 0;
-          digitalWrite(LED5, !digitalRead(LED5));
-        } else {
-          ledCycleCount++;
-        }
-
+        digitalWrite(LED5, GPIO_ON);
         break;
       case 4:
         digitalWrite(LED1, GPIO_ON);
         digitalWrite(LED2, GPIO_ON);
         digitalWrite(LED3, GPIO_ON);
-        if (ledCycleCount > ledCycle) {
-          ledCycleCount = 0;
-          digitalWrite(LED4, !digitalRead(LED4));
-        } else {
-          ledCycleCount++;
-        }
+        digitalWrite(LED4, GPIO_ON);
         digitalWrite(LED5, GPIO_OFF);
         break;
       case 3:
         digitalWrite(LED1, GPIO_ON);
         digitalWrite(LED2, GPIO_ON);
-        if (ledCycleCount > ledCycle) {
-          ledCycleCount = 0;
-          digitalWrite(LED3, !digitalRead(LED3));
-        } else {
-          ledCycleCount++;
-        }
+        digitalWrite(LED3, GPIO_ON);
         digitalWrite(LED4, GPIO_OFF);
         digitalWrite(LED5, GPIO_OFF);
         break;
       case 2:
         digitalWrite(LED1, GPIO_ON);
-        if (ledCycleCount > ledCycle) {
-          ledCycleCount = 0;
-          digitalWrite(LED2, !digitalRead(LED2));
-        } else {
-          ledCycleCount++;
-        }
+        digitalWrite(LED2, GPIO_ON);
         digitalWrite(LED3, GPIO_OFF);
         digitalWrite(LED4, GPIO_OFF);
         digitalWrite(LED5, GPIO_OFF);
         break;
       case 1:
-        if (ledCycleCount > ledCycle) {
-          ledCycleCount = 0;
-          digitalWrite(LED1, !digitalRead(LED1));
-        } else {
-          ledCycleCount++;
-        }
+        digitalWrite(LED1, GPIO_ON);
         digitalWrite(LED2, GPIO_OFF);
         digitalWrite(LED3, GPIO_OFF);
         digitalWrite(LED4, GPIO_OFF);
@@ -256,56 +230,72 @@ void ledBTlevel(int level) {
     }
   } else {
     //有電的狀況下跑燈狀態
-    ledChargelevelCount++;
-    if (ledChargelevelCount <= level) {
-      switch (ledChargelevelCount) {
-        case 5:
-          digitalWrite(LED1, GPIO_ON);
-          digitalWrite(LED2, GPIO_ON);
-          digitalWrite(LED3, GPIO_ON);
-          digitalWrite(LED4, GPIO_ON);
-          digitalWrite(LED5, GPIO_ON);
-          break;
-        case 4:
-          digitalWrite(LED1, GPIO_ON);
-          digitalWrite(LED2, GPIO_ON);
-          digitalWrite(LED3, GPIO_ON);
-          digitalWrite(LED4, GPIO_ON);
-          digitalWrite(LED5, GPIO_OFF);
-          break;
-        case 3:
-          digitalWrite(LED1, GPIO_ON);
-          digitalWrite(LED2, GPIO_ON);
-          digitalWrite(LED3, GPIO_ON);
-          digitalWrite(LED4, GPIO_OFF);
-          digitalWrite(LED5, GPIO_OFF);
-          break;
-        case 2:
-          digitalWrite(LED1, GPIO_ON);
-          digitalWrite(LED2, GPIO_ON);
-          digitalWrite(LED3, GPIO_OFF);
-          digitalWrite(LED4, GPIO_OFF);
-          digitalWrite(LED5, GPIO_OFF);
-          break;
-        case 1:
-          digitalWrite(LED1, GPIO_ON);
-          digitalWrite(LED2, GPIO_OFF);
-          digitalWrite(LED3, GPIO_OFF);
-          digitalWrite(LED4, GPIO_OFF);
-          digitalWrite(LED5, GPIO_OFF);
-          break;
-        case 0:
-          digitalWrite(LED1, GPIO_OFF);
-          digitalWrite(LED2, GPIO_OFF);
-          digitalWrite(LED3, GPIO_OFF);
-          digitalWrite(LED4, GPIO_OFF);
-          digitalWrite(LED5, GPIO_OFF);
-          break;
-      }
-    } else {
-      ledChargelevelCount = 0;
-    }
+    //level = 5 => 5,4
+    //level = 4 => 5,4,3
+    //level = 3 => 5,4,3,2
+    //level = 2 => 5,4,3,2,1
+    //level = 1 => 5,4,3,2,1,0
+    Serial.print("ledChargelevelCount\t");
+    Serial.println(ledChargelevelCount);
+    Serial.print("level\t");
+    Serial.println(level);
 
+    switch (ledChargelevelCount) {
+      case 5:
+        digitalWrite(LED1, GPIO_ON);
+        digitalWrite(LED2, GPIO_ON);
+        digitalWrite(LED3, GPIO_ON);
+        digitalWrite(LED4, GPIO_ON);
+        digitalWrite(LED5, !digitalRead(LED5));
+        ledChargelevelCount = level;
+        break;
+      case 4:
+        digitalWrite(LED1, GPIO_ON);
+        digitalWrite(LED2, GPIO_ON);
+        digitalWrite(LED3, GPIO_ON);
+        digitalWrite(LED4, GPIO_ON);
+        digitalWrite(LED5, GPIO_OFF);
+        ledChargelevelCount++;
+        break;
+      case 3:
+        digitalWrite(LED1, GPIO_ON);
+        digitalWrite(LED2, GPIO_ON);
+        digitalWrite(LED3, GPIO_ON);
+        digitalWrite(LED4, GPIO_OFF);
+        digitalWrite(LED5, GPIO_OFF);
+        ledChargelevelCount++;
+        break;
+      case 2:
+        digitalWrite(LED1, GPIO_ON);
+        digitalWrite(LED2, GPIO_ON);
+        digitalWrite(LED3, GPIO_OFF);
+        digitalWrite(LED4, GPIO_OFF);
+        digitalWrite(LED5, GPIO_OFF);
+        ledChargelevelCount++;
+        break;
+      case 1:
+        digitalWrite(LED1, GPIO_ON);
+        digitalWrite(LED2, GPIO_OFF);
+        digitalWrite(LED3, GPIO_OFF);
+        digitalWrite(LED4, GPIO_OFF);
+        digitalWrite(LED5, GPIO_OFF);
+        ledChargelevelCount++;
+        break;
+      case 0:
+        digitalWrite(LED1, GPIO_OFF);
+        digitalWrite(LED2, GPIO_OFF);
+        digitalWrite(LED3, GPIO_OFF);
+        digitalWrite(LED4, GPIO_OFF);
+        digitalWrite(LED5, GPIO_OFF);
+        ledChargelevelCount++;
+        break;
+      default:
+        ledChargelevelCount = level;
+        break;
+
+
+
+    }
   }
 }
 
@@ -346,8 +336,20 @@ void loop() {
     checkTheBatteryCycleCount++;
   } else {
     checkTheBatteryCycleCount = 0;
-    ledBTlevel(adcCheckBTValue());//检查电池并直接输出LED
+    level = adcCheckBTValue();
+    ledBTlevel(level);//检查电池并直接输出LED
   }
-
   noHavePower = adcCheckACValue(); //读取AC是否有电力输入,如果有则不开启继电器
+  if (noHavePower == 1) {
+    if (noAcPowerCountTime > lowPowerBuzzCount) {
+      noAcPowerCountTime = 0;
+      //Serial.print(noAcPowerCountTime);
+      runBuzz(1);
+    } else {
+      noAcPowerCountTime++;
+      //Serial.print(noAcPowerCountTime);
+    }
+  } else {
+    noAcPowerCountTime = 0;
+  }
 }
