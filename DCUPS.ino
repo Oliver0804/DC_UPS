@@ -14,8 +14,7 @@
   26    510 62  2.818181818   874.4903581
   輸入電壓
 */
-#define ADC_OFFSET 100   //非工程人員改為0即可 測試值100
-
+#define ADC_OFFSET 0   //非工程人員改為0即可 測試值100
 #define ADC_ZONE_1 790-ADC_OFFSET //23.5
 #define ADC_ZONE_2 807-ADC_OFFSET //24
 #define ADC_ZONE_3 824-ADC_OFFSET //24.5
@@ -40,9 +39,8 @@ int ledChargelevelCount = 0;
 #define LED3 PA7
 #define LED4 PA6
 #define LED5 PA5
-#define ledCycle 1
-int ledCycleCount = 0;
-
+#define theLedCycle 10
+int theLedCycleCount = 0;
 
 
 
@@ -337,8 +335,8 @@ void loop() {
   } else {
     checkTheBatteryCycleCount = 0;
     level = adcCheckBTValue();
-    ledBTlevel(level);//检查电池并直接输出LED
   }
+  
   noHavePower = adcCheckACValue(); //读取AC是否有电力输入,如果有则不开启继电器
   if (noHavePower == 1) {
     if (noAcPowerCountTime > lowPowerBuzzCount) {
@@ -351,5 +349,12 @@ void loop() {
     }
   } else {
     noAcPowerCountTime = 0;
+  }
+
+  if (theLedCycleCount < theLedCycle) {
+    theLedCycleCount++;
+  } else {
+    theLedCycleCount = 0;
+    ledBTlevel(level);//检查电池并直接输出LED
   }
 }
