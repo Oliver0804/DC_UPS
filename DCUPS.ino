@@ -25,10 +25,13 @@
 
 //侦测有无AC之阀值
 #define AC_ADC_VAL 20 //AC檢知位準
-#define checkTheBatteryCycle 10  // 充電檢查週期
+#define checkTheBatteryCycle 20  // 電池檢查週期
 int checkTheBatteryCycleCount = 0;
 
-
+int charge_s = 0;
+int charge_count = 0;
+#define theChargeOnCycle 2  //充電開啟時間長度
+#define theChargeOffCycle 20  //充電關閉時間長度
 
 int noHavePower = 0;
 int ledChargelevelCount = 0;
@@ -123,7 +126,7 @@ int adcCheckBTValue() {
     delay(5);
   }
   adcValue1 = adcValue1 / ADC_AVG;
-  chargeOn();
+  //chargeOn();
   Serial.print("BT:");
   Serial.println(adcValue1);
   if (adcValue1 > ADC_ZONE_5) {
@@ -151,6 +154,7 @@ int adcCheckBTValue() {
   return 0;
 
 }
+
 
 
 int adcCheckACValue() {
@@ -336,7 +340,25 @@ void loop() {
     checkTheBatteryCycleCount = 0;
     level = adcCheckBTValue();
   }
-  
+
+  if (charge_s == 1) {
+    chargeOn();
+    if (theChargeOnCycle < charge_count) {
+      charge_s = 0;
+      charge_count = 0;
+    } else {
+      charge_count++;
+    }
+  } else { //charge_s==0
+    chargeOff();
+    if (theChargeOffCycle < charge_count) {
+      charge_s = 1;
+      charge_count = 0;
+    } else {
+      charge_count++;
+    }
+  }
+
   noHavePower = adcCheckACValue(); //读取AC是否有电力输入,如果有则不开启继电器
   if (noHavePower == 1) {
     if (noAcPowerCountTime > lowPowerBuzzCount) {
@@ -355,6 +377,7 @@ void loop() {
     theLedCycleCount++;
   } else {
     theLedCycleCount = 0;
-    ledBTlevel(level);//检查电池并直接输出LED
+    //ledBTlevel(level);//检查电池并直接输出LED
   }
+
 }
