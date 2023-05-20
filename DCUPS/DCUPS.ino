@@ -24,7 +24,7 @@
 #define ADC_AVG 5
 
 //侦测有无AC之阀值
-#define AC_ADC_VAL 20 //AC檢知位準
+#define AC_ADC_VAL 220 //AC檢知位準
 #define checkTheBatteryCycle 20  // 電池檢查週期
 int checkTheBatteryCycleCount = 0;
 
@@ -241,7 +241,6 @@ void ledBTlevel(int level) {
     Serial.println(ledChargelevelCount);
     Serial.print("level\t");
     Serial.println(level);
-
     switch (ledChargelevelCount) {
       case 5:
         digitalWrite(LED1, GPIO_ON);
@@ -323,13 +322,21 @@ void setup() {
   delay(100);
   digitalWrite(GPIO_BUZZ, LOW);
   delay(100);
-  while (0) {
+  while (1) {
     digitalWrite(GPIO_BUZZ, HIGH);
     delay(100);
     digitalWrite(GPIO_BUZZ, LOW);
     delay(100);
     digitalWrite(BT_CHARGE, !digitalRead(BT_CHARGE));
+    relayOn();
     delay(1000);
+    relayOff();
+    delay(1000);
+        relayOn();
+    delay(1000);
+    relayOff();
+    delay(1000);
+    break;
   }
 }
 
@@ -377,7 +384,7 @@ void loop() {
     theLedCycleCount++;
   } else {
     theLedCycleCount = 0;
-    //ledBTlevel(level);//检查电池并直接输出LED
+    ledBTlevel(level);//检查电池并直接输出LED
   }
 
 }
