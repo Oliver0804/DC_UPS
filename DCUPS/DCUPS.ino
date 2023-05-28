@@ -15,11 +15,16 @@
   輸入電壓
 */
 #define ADC_OFFSET 0   //非工程人員改為0即可 測試值100
-#define ADC_ZONE_1 790-ADC_OFFSET //23.5
-#define ADC_ZONE_2 807-ADC_OFFSET //24
-#define ADC_ZONE_3 824-ADC_OFFSET //24.5
-#define ADC_ZONE_4 840-ADC_OFFSET //25
-#define ADC_ZONE_5 874-ADC_OFFSET //26
+
+#define ADC_ZONE_0 750-ADC_OFFSET //進入sleep數值
+#define ADC_ZONE_1 790-ADC_OFFSET //23.5v
+#define ADC_ZONE_2 807-ADC_OFFSET //24v
+#define ADC_ZONE_3 824-ADC_OFFSET //24.5v
+#define ADC_ZONE_4 840-ADC_OFFSET //25v
+#define ADC_ZONE_5 874-ADC_OFFSET //26v
+
+
+
 
 #define ADC_AVG 5
 
@@ -48,6 +53,7 @@ int theLedCycleCount = 0;
 
 
 #define GPIO_BUZZ PA13
+#define BUZZ_ZONE_0 0
 #define BUZZ_ZONE_1 30
 #define BUZZ_ZONE_2 50
 #define BUZZ_ZONE_3 70
@@ -64,6 +70,15 @@ int level = 0;
 int lowPowerBuzzCount = 50;
 //计数周期使用
 int noAcPowerCountTime = 0;
+
+//sleep
+void sleep(uint16_t ms) {
+  for(uint16_t i = 0; i< ms; i++)
+    asm("wfi");
+}
+
+
+
 //GPIO初始化
 void gpioInit() {
 
@@ -150,8 +165,14 @@ int adcCheckBTValue() {
 
     return 1;
   }
-  Serial.print("very low\r\n");
-  return 0;
+  if (adcValue1 < ADC_ZONE_0) {
+    lowPowerBuzzCount = BUZZ_ZONE_0;
+
+    Serial.print("very low\r\n");
+    return 0;
+  }
+
+  return -1;
 
 }
 
@@ -169,7 +190,12 @@ int adcCheckACValue() {
   if (adcValue2 > AC_ADC_VAL) {
     relayOff();
     return 0;
-  } else {
+  } else if (lowPowerBuzzCount==0) {
+    relayOff();
+    sleep(1000);
+    return 1;
+  }
+  else {
     //停电状态
     relayOn();
     //计数次数
@@ -332,7 +358,7 @@ void setup() {
     delay(1000);
     relayOff();
     delay(1000);
-        relayOn();
+    relayOn();
     delay(1000);
     relayOff();
     delay(1000);
@@ -368,13 +394,15 @@ void loop() {
 
   noHavePower = adcCheckACValue(); //读取AC是否有电力输入,如果有则不开启继电器
   if (noHavePower == 1) {
-    if (noAcPowerCountTime > lowPowerBuzzCount) {
-      noAcPowerCountTime = 0;
-      //Serial.print(noAcPowerCountTime);
-      runBuzz(1);
-    } else {
-      noAcPowerCountTime++;
-      //Serial.print(noAcPowerCountTime);
+    if (lowPowerBuzzCount != 0) {
+      if (noAcPowerCountTime > lowPowerBuzzCount) {
+        noAcPowerCountTime = 0;
+        //Serial.print(noAcPowerCountTime);
+        runBuzz(1);
+      } else {
+        noAcPowerCountTime++;
+        //Serial.print(noAcPowerCountTime);
+      }
     }
   } else {
     noAcPowerCountTime = 0;
