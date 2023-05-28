@@ -16,12 +16,12 @@
 */
 #define ADC_OFFSET 0   //非工程人員改為0即可 測試值100
 
-#define ADC_ZONE_0 750-ADC_OFFSET //進入sleep數值
-#define ADC_ZONE_1 790-ADC_OFFSET //23.5v
-#define ADC_ZONE_2 807-ADC_OFFSET //24v
-#define ADC_ZONE_3 824-ADC_OFFSET //24.5v
-#define ADC_ZONE_4 840-ADC_OFFSET //25v
-#define ADC_ZONE_5 874-ADC_OFFSET //26v
+#define ADC_ZONE_0 874-ADC_OFFSET //進入sleep數值  //20.0
+#define ADC_ZONE_1 900-ADC_OFFSET //23.5v
+#define ADC_ZONE_2 920-ADC_OFFSET //24v    
+#define ADC_ZONE_3 940-ADC_OFFSET //24.5v 
+#define ADC_ZONE_4 960-ADC_OFFSET //25v  
+#define ADC_ZONE_5 980-ADC_OFFSET //24v   
 
 
 
