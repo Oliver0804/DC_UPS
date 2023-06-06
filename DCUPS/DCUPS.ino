@@ -26,7 +26,7 @@
 
 
 
-#define ADC_AVG 5
+#define ADC_AVG 10
 
 //侦测有无AC之阀值
 #define AC_ADC_VAL 220 //AC檢知位準
@@ -70,10 +70,13 @@ int level = 0;
 int lowPowerBuzzCount = 50;
 //计数周期使用
 int noAcPowerCountTime = 0;
+//低電壓widnwos
+int lowPowerFlag = 0;
+
 
 //sleep
 void sleep(uint16_t ms) {
-  for(uint16_t i = 0; i< ms; i++)
+  for (uint16_t i = 0; i < ms; i++)
     asm("wfi");
 }
 
@@ -158,6 +161,7 @@ int adcCheckBTValue() {
   }
   if (adcValue1 > ADC_ZONE_2) {
     lowPowerBuzzCount = BUZZ_ZONE_2;
+    lowPowerFlag = 0;
     return 2;
   }
   if (adcValue1 > ADC_ZONE_1) {
@@ -167,7 +171,7 @@ int adcCheckBTValue() {
   }
   if (adcValue1 < ADC_ZONE_0) {
     lowPowerBuzzCount = BUZZ_ZONE_0;
-
+    lowPowerFlag = 1;
     Serial.print("very low\r\n");
     return 0;
   }
@@ -190,14 +194,16 @@ int adcCheckACValue() {
   if (adcValue2 > AC_ADC_VAL) {
     relayOff();
     return 0;
-  } else if (lowPowerBuzzCount==0) {
+  } else if (lowPowerBuzzCount == 0) {
     relayOff();
     sleep(1000);
     return 1;
   }
   else {
     //停电状态
-    relayOn();
+    if (lowPowerFlag == 1) {
+      relayOn();
+    }
     //计数次数
     return 1;
   }
