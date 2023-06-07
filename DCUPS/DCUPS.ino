@@ -14,7 +14,7 @@
   26    510 62  2.818181818   874.4903581
   輸入電壓
 */
-#define ADC_OFFSET 0   //非工程人員改為0即可 測試值100
+#define ADC_OFFSET 100   //非工程人員改為0即可 測試值100
 
 #define ADC_ZONE_0 874-ADC_OFFSET //進入sleep數值  //20.0
 #define ADC_ZONE_1 900-ADC_OFFSET //23.5v
@@ -26,7 +26,7 @@
 
 
 
-#define ADC_AVG 10
+#define ADC_AVG 15
 
 //侦测有无AC之阀值
 #define AC_ADC_VAL 220 //AC檢知位準
@@ -130,6 +130,36 @@ void runBuzz(int times) {
   }
 }
 
+
+int calculateMedianADCValue() {
+  int adcValues[ADC_AVG]; // 儲存ADC值的陣列
+
+  for (int x = 0; x < ADC_AVG; x++) {
+    adcValues[x] = analogRead(ADC_BT);
+    delay(5);
+  }
+
+  // 對ADC數值進行排序
+  for (int i = 0; i < ADC_AVG - 1; i++) {
+    for (int j = i + 1; j < ADC_AVG; j++) {
+      if (adcValues[i] > adcValues[j]) {
+        int temp = adcValues[i];
+        adcValues[i] = adcValues[j];
+        adcValues[j] = temp;
+      }
+    }
+  }
+
+  // 輸出中位數
+  if (ADC_AVG % 2 == 0) {
+    // 如果數據個數是偶數，則中位數為中間兩個數的平均值
+    return (adcValues[ADC_AVG / 2] + adcValues[ADC_AVG / 2 - 1]) / 2;
+  } else {
+    // 如果數據個數是奇數，則中位數為中間的數
+    return adcValues[ADC_AVG / 2];
+  }
+}
+
 /*
   读取电池电压
   return相对应数值
@@ -138,12 +168,17 @@ void runBuzz(int times) {
 int adcCheckBTValue() {
   adcValue1 = 0;
   chargeOff();
-  delay(50);//等待电容放电
+  delay(100);//等待电容放电
+  //均值計算
+  /*
   for (int x = 0; x <= ADC_AVG; x++) {
     adcValue1 = adcValue1 + analogRead(ADC_BT);
     delay(5);
   }
   adcValue1 = adcValue1 / ADC_AVG;
+  */
+  //中值計算
+  adcValue1 =calculateMedianADCValue();
   //chargeOn();
   Serial.print("BT:");
   Serial.println(adcValue1);
@@ -157,11 +192,12 @@ int adcCheckBTValue() {
   }
   if (adcValue1 > ADC_ZONE_3) {
     lowPowerBuzzCount = BUZZ_ZONE_3;
+    lowPowerFlag = 0;//窗口位置B
     return 3;
   }
   if (adcValue1 > ADC_ZONE_2) {
     lowPowerBuzzCount = BUZZ_ZONE_2;
-    lowPowerFlag = 0;
+    //lowPowerFlag = 0;//窗口位置B
     return 2;
   }
   if (adcValue1 > ADC_ZONE_1) {
@@ -171,7 +207,7 @@ int adcCheckBTValue() {
   }
   if (adcValue1 < ADC_ZONE_0) {
     lowPowerBuzzCount = BUZZ_ZONE_0;
-    lowPowerFlag = 1;
+    lowPowerFlag = 1;//窗口位置A
     Serial.print("very low\r\n");
     return 0;
   }
